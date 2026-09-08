@@ -28,6 +28,11 @@ reinterpreted:
 * ``ismip7BasinNumber`` -- 0-based, for aggregation against ISMIP7 targets
 * ``ismip6shelfMelt_basin`` -- 1-based, for MALI's melt-parameterisation input
 
+A zero ``ismip6shelfMelt_deltaT`` is written alongside them, because MALI reads
+the basin-wide thermal-forcing correction from the same input stream and the
+run fails without it.  The calibration fits ``dT_b`` after ``K`` and writes the
+fitted values back over this field.
+
 If a MALI region-mask file is supplied with ``--region_mask``, the script
 cross-tabulates the two and reports per-basin agreement, so a mismatch between
 the ISMIP6-era regions and the ISMIP7 IMBIE2 basins is caught here rather than
@@ -248,6 +253,20 @@ def to_integer_masks(ds_remapped):
         'long_name': 'basin number for the MALI melt parameterisation',
         'convention': '1-based, 1-16, equal to ismip7BasinNumber + 1; '
                       '0 marks cells with no basin',
+    }
+
+    # MALI reads the per-basin thermal-forcing correction from the same input
+    # stream as the basin numbers, so it has to be present or the run fails.
+    # The calibration fits dT_b *after* K, and uses zero throughout, which is
+    # what is written here; a calibrated field overwrites it later.
+    ds['ismip6shelfMelt_deltaT'] = xr.zeros_like(
+        ds['ismip6shelfMelt_basin'], dtype=float
+    )
+    ds['ismip6shelfMelt_deltaT'].attrs = {
+        'long_name': 'basin-wide thermal forcing correction',
+        'units': 'degC',
+        'note': 'zero as written here; the calibration fits one value per '
+                'basin and writes them back over this field',
     }
 
     bfrn = ds_remapped['ismip7BFRNBin']
